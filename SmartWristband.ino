@@ -124,6 +124,7 @@ struct Get
   bool isOn;
   float tempVal;
   int hrVal;
+  int i;
   
   float temp() // gets the temperature from the device
   {
@@ -144,6 +145,7 @@ struct Get
     uint8_t rateValue;
     heartrate.getValue(heartratePin);
     rateValue = heartrate.getRate();
+    i++;
     
     if(rateValue)
     {
@@ -159,18 +161,16 @@ struct Get
     
     Serial.println("[loop] Getting Heart Rate");
     int hr = 0;
-    int i = 0; // used for keeping track of the number of times the loop repeats
     
     Serial.println("[loop] Ensure device is worn accordingly");
-    while(!hr) // query the heart rate until we get a value
+
+    for(int i = 0; i < 35; i++)
     {
-      i++;
       hr = getHr();
       led.blink(100);
 
-      if(i > 35)
+      if(hr > 0)
       {
-        Serial.println("[loop] ERROR: Failed to retrieve heartrate");
         break;
       }
     }
@@ -228,7 +228,8 @@ Get get;
 struct Time
 {
   int timeZone = 1; // difference from GMT
-
+  char timestamp[25]; // stores the time in the according format (YYYY-MM-DDThh:mm:ssZ)
+  
   unsigned long getEpochTime() // gets the time from the server
   {
     Serial.println("[loop / Time / getEpochTime]");
@@ -285,6 +286,13 @@ struct Time
     String time;
     String date;
     String finalVal;
+
+    date += "20"; // the RTC library can't return the full year, have to add 20 to start to get 20xx
+    date += rtc.getYear();
+    date += "-";
+    date += rtc.getMonth();
+    date += "-";
+    date += rtc.getDay();
     
     if(rtc.getHours() < 10) time += "0";
     time += rtc.getHours();
@@ -295,16 +303,12 @@ struct Time
     if(rtc.getSeconds() < 10) time += "0";
     time += rtc.getSeconds();
   
-    date += rtc.getDay();
-    date += "/";
-    date += rtc.getMonth();
-    date += "/";
-    date += rtc.getYear();
-  
     rtc.getY2kEpoch();
-    
-    finalVal += date; finalVal += " "; finalVal += time; finalVal += " Epoch "; finalVal += rtc.getEpoch();
     epoch = rtc.getEpoch();
+
+    finalVal = date + String("T") + time + String(".0Z");
+    finalVal.toCharArray(timestamp, finalVal.length());
+    Serial.println("[loop] Time is " + String(timestamp));
     return finalVal;
   }
 
@@ -436,23 +440,23 @@ struct Iothub
     led.off();
   }
 
-  String compileMessage(int deviceID, float geoLat, float geoLng, int isWorn) // compiles message of type 1 (location)
+  String compileMessage(int deviceID, float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
-    char buffer[50];
-    sprintf(buffer, payload1, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn);
-    
+    char buffer[150];
+    sprintf(buffer, payload1, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "timestamp", t);
+
     // return
     return String(buffer);
   }
 
-  String compileMessage(int deviceID, int heartrate, float temperature) // compiles message of type 2 (telemetry)
+  String compileMessage(int deviceID, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
-    char buffer[50];
-    sprintf(buffer, payload2, "id", deviceID, "heartrate", heartrate, "temperature", temperature);
+    char buffer[150];
+    sprintf(buffer, payload2, "id", deviceID, "heartrate", heartrate, "temperature", temperature, "timestamp", t);
     
     // return
     return String(buffer);
@@ -464,7 +468,7 @@ Iothub iot;
 struct Looping
 {
   int count;
-  int sleepTime = MODE; // the time to wait between reads
+  int sleepTime = DEVELOP_TIME; // the time to wait between reads
 
   // runs every 5 mins
   int sendOne()
@@ -475,7 +479,7 @@ struct Looping
     get.checkIfOn(); // check if the device is being worn
 
     // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn));
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, time.timestamp));
     return 1;
   }
 
@@ -497,7 +501,7 @@ struct Looping
     get.temp(); // get the temperature
 
     // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, get.hrVal, get.tempVal));
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, get.hrVal, get.tempVal, time.timestamp));
     
     // reset variables
     get.tempVal = 0;
@@ -512,6 +516,7 @@ struct Looping
     count ++; // increment the looping number
 
     iot.prepareConnection(); // prepare the connection to the backend
+    time.processTime();
     
     sendOne();
     if(count >= 4)
