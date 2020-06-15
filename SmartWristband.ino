@@ -44,8 +44,8 @@ MqttClient    mqttClient(sslClient);
 const char broker[] = SECRET_BROKER;
 String deviceId = SECRET_DEVICEID;
 
-char payload1[] = "{ \"%s\": %d, \"%s\": %f, \"%s\": %f, \"%s\": %d }"; // deviceID, geoLat, geoLng, isWorn
-char payload2[] = "{ \"%s\": %d, \"%s\": %d, \"%s\": %f }"; // deviceID, heartrate, temperature
+char payload1[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d }"; // deviceID, geoLat, geoLng, isWorn
+char payload2[] = "{ \"%s\": \"%s\", \"%s\": %d, \"%s\": %f }"; // deviceID, heartrate, temperature
   
 // time globals
 unsigned int localPort = 2390;      // local port to listen for UDP packets
@@ -440,7 +440,7 @@ struct Iothub
     led.off();
   }
 
-  String compileMessage(int deviceID, float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
+  String compileMessage(String deviceID, float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
@@ -451,12 +451,12 @@ struct Iothub
     return String(buffer);
   }
 
-  String compileMessage(int deviceID, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
+  String compileMessage(String deviceID, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
     char buffer[150];
-    sprintf(buffer, payload2, "id", deviceID, "heartrate", heartrate, "temperature", temperature, "timestamp", t);
+    sprintf(buffer, payload2, "id", deviceID, "heartrate", heartrate, "temperature", temperature, "time", t);
     
     // return
     return String(buffer);
