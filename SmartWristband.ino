@@ -44,8 +44,8 @@ MqttClient    mqttClient(sslClient);
 const char broker[] = SECRET_BROKER;
 String deviceId = SECRET_DEVICEID;
 
-char payload1[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d }"; // deviceID, geoLat, geoLng, isWorn
-char payload2[] = "{ \"%s\": \"%s\", \"%s\": %d, \"%s\": %f }"; // deviceID, heartrate, temperature
+char payload1[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, time
+char payload2[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": %d, \"%s\": %f, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, heartrate, temperature, time
   
 // time globals
 unsigned int localPort = 2390;      // local port to listen for UDP packets
@@ -440,23 +440,23 @@ struct Iothub
     led.off();
   }
 
-  String compileMessage(String deviceID, float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
+  String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
     char buffer[150];
-    sprintf(buffer, payload1, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "timestamp", t);
+    sprintf(buffer, payload1, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "time", t);
 
     // return
     return String(buffer);
   }
 
-  String compileMessage(String deviceID, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
+  String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
     char buffer[150];
-    sprintf(buffer, payload2, "id", deviceID, "heartrate", heartrate, "temperature", temperature, "time", t);
+    sprintf(buffer, payload2, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t);
     
     // return
     return String(buffer);
@@ -468,7 +468,7 @@ Iothub iot;
 struct Looping
 {
   int count;
-  int sleepTime = DEVELOP_TIME; // the time to wait between reads
+  int sleepTime = MODE; // the time to wait between reads
 
   // runs every 5 mins
   int sendOne()
@@ -489,6 +489,9 @@ struct Looping
     Serial.println("[loop / Looping / sendTwo]");
     count = 0; // reset count
 
+    loc.getLocation(); // get the current location - wait until precise
+    get.checkIfOn(); // check if the device is being worn
+    
     if(get.isOn) // only get the heartrate if the device is worn
     {
       get.processHr(); // get the heartrate
@@ -501,7 +504,7 @@ struct Looping
     get.temp(); // get the temperature
 
     // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, get.hrVal, get.tempVal, time.timestamp));
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, get.hrVal, get.tempVal, time.timestamp));
     
     // reset variables
     get.tempVal = 0;
@@ -518,10 +521,13 @@ struct Looping
     iot.prepareConnection(); // prepare the connection to the backend
     time.processTime();
     
-    sendOne();
     if(count >= 4)
     {
       sendTwo();
+    }
+    else
+    {
+      sendOne();
     }
 
     return 1;
@@ -650,7 +656,7 @@ Setup setting;
 void setup()
 {
   // only start the Serial Monitor if in development mode
-  if(looping.sleepTime == DEVELOP_TIME)
+  if(MODE == DEVELOP_TIME)
   {
     Serial.begin(9600);
     while(!Serial);
@@ -677,7 +683,7 @@ void loop()
   Serial.println("");
   delay(1);
 
-  if(looping.sleepTime == DEVELOP_TIME) // delay 10 seconds if debugging
+  if(MODE == DEVELOP_TIME) // delay 10 seconds if debugging
   {
     led.on();
     delay(looping.sleepTime);
