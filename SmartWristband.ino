@@ -1,22 +1,22 @@
 /*
- * SmartWristband
- * 1/JUN/2020 - 5/JUN/2020 | Andrei Florian
- */
+   SmartWristband
+   1/JUN/2020 - 5/JUN/2020 | Andrei Florian
+*/
 
 /*
- * Notes:
- *  1. Please follow the Hackster tutorial in the readme to set things up
- *  2. please remember to set the "looping.sleepTime" variable to RELEASE_TIME when deploying (variable found in the Looping object)
- *  3. If your GSM access requires credentials such as the pin number, add them in the setup loop.
- *  4. If you need any help, you can email me at andrei_florian@universumco.com
- *  
- * Debug LED:
- *  The onboard LED is used for debugging
- *  On          Long Process
- *  Slow blink  Data Transfer (dev -> cloud)      (1000ms)
- *  Fast blink  Data collection (sensors -> dev)  (200ms)
- */
- 
+   Notes:
+    1. Please follow the Hackster tutorial in the readme to set things up
+    2. please remember to set the "looping.sleepTime" variable to RELEASE_TIME when deploying (variable found in the Looping object)
+    3. If your GSM access requires credentials such as the pin number, add them in the setup loop.
+    4. If you need any help, you can email me at andrei_florian@universumco.com
+
+   Debug LED:
+    The onboard LED is used for debugging
+    On          Long Process
+    Slow blink  Data Transfer (dev -> cloud)      (1000ms)
+    Fast blink  Data collection (sensors -> dev)  (200ms)
+*/
+
 // Basic Includes
 #include <MKRGSM.h>
 #include <RTCZero.h>
@@ -44,9 +44,8 @@ MqttClient    mqttClient(sslClient);
 const char broker[] = SECRET_BROKER;
 String deviceId = SECRET_DEVICEID;
 
-char payload1[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, time
-char payload2[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": %d, \"%s\": %f, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, heartrate, temperature, time
-  
+char payload[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": %d, \"%s\": %f, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, heartrate, temperature, time
+
 // time globals
 unsigned int localPort = 2390;      // local port to listen for UDP packets
 IPAddress timeServer(129, 6, 15, 28); // time.nist.gov NTP server
@@ -75,10 +74,10 @@ unsigned long returnTime()
   return epoch;
 }
 
-void onMessageReceived(int messageSize) 
+void onMessageReceived(int messageSize)
 {
   Serial.println("[loop / Iothub / onMessageReceived]");
-  
+
   // we received a message, print out the topic and contents
   Serial.print("[loop] Received a message with topic '");
   Serial.print(mqttClient.messageTopic());
@@ -87,17 +86,22 @@ void onMessageReceived(int messageSize)
   Serial.println(" bytes:");
 
   // use the Stream interface to print the contents
-  while (mqttClient.available()) 
+  while (mqttClient.available())
   {
     Serial.print((char)mqttClient.read());
   }
   Serial.println();
 }
 
+void alarmEvent0()
+{
+  Serial.begin(9600);
+}
+
 struct LED
 {
   int ledPin = LED_BUILTIN;
-  
+
   void on()
   {
     digitalWrite(ledPin, HIGH);
@@ -125,14 +129,14 @@ struct Get
   float tempVal;
   int hrVal;
   int i;
-  
+
   float temp() // gets the temperature from the device
   {
     Serial.println("[loop / Get / temp]");
-    
+
     // get the analogic output from the sensor
     int rawVal = analogRead(A4);
-  
+
     // convert it to the temperature - 1024 = 100 degrees, 0 = 0 degrees
     float temp = rawVal / 10.24; // 10.24 is the difference (1024 / 100)
     tempVal = temp;
@@ -141,40 +145,40 @@ struct Get
   }
 
   int getHr() // query the heart rate
-  { 
+  {
     uint8_t rateValue;
     heartrate.getValue(heartratePin);
     rateValue = heartrate.getRate();
     i++;
-    
-    if(rateValue)
+
+    if (rateValue)
     {
       return rateValue;
     }
-  
+
     return 0;
   }
-  
+
   int processHr() // process the heart rate
   {
     Serial.println("[loop / Get / processHr]");
-    
+
     Serial.println("[loop] Getting Heart Rate");
     int hr = 0;
-    
+
     Serial.println("[loop] Ensure device is worn accordingly");
 
-    for(int i = 0; i < 35; i++)
+    for (int i = 0; i < 35; i++)
     {
       hr = getHr();
       led.blink(100);
 
-      if(hr > 0)
+      if (hr > 0)
       {
         break;
       }
     }
-  
+
     Serial.println("[loop] Heart rate is " + String(hr));
     hrVal = hr;
     return hr;
@@ -190,13 +194,13 @@ struct Get
     int margin = 5;
 
     // should work in most instances. Note that if organic material is in the range of the hr sensor, it will think someone is wearing it
-    for(int i = 0; i < sampleSpace; i++) 
+    for (int i = 0; i < sampleSpace; i++)
     {
       int val = heartrate.getValue(heartratePin);
       //Serial.println(val);
       Serial.print(".");
-      
-      if(val > 1000) // read confirms that device is not worn
+
+      if (val > 1000) // read confirms that device is not worn
       {
         pozCount++;
       }
@@ -204,13 +208,13 @@ struct Get
       {
         pozCount = 0;
       }
-      
+
       led.blink(100);
     }
 
     Serial.println("");
-    
-    if(pozCount > margin)
+
+    if (pozCount > margin)
     {
       Serial.println("[loop] Device is not worn");
       isOn = false;
@@ -224,39 +228,39 @@ struct Get
 };
 
 Get get;
-  
+
 struct Time
 {
   int timeZone = 1; // difference from GMT
   char timestamp[25]; // stores the time in the according format (YYYY-MM-DDThh:mm:ssZ)
-  
+
   unsigned long getEpochTime() // gets the time from the server
   {
     Serial.println("[loop / Time / getEpochTime]");
     Serial.println("[setup] asking server for time");
     sendNTPpacket(timeServer); // send an NTP packet to a time server
     delay(1000); // delay is essential, do not delete
-    
-    if ( Udp.parsePacket() ) 
+
+    if ( Udp.parsePacket() )
     {
       Serial.println("[setup] packet received");
       Udp.read(packetBuffer, NTP_PACKET_SIZE); // read the packet into the buffer
-  
+
       unsigned long highWord = word(packetBuffer[40], packetBuffer[41]);
       unsigned long lowWord = word(packetBuffer[42], packetBuffer[43]);
-      
+
       // combine the four bytes (two words) into a long integer
       // this is NTP time (seconds since Jan 1 1900):
       unsigned long secsSince1900 = highWord << 16 | lowWord;
-  
+
       // now convert NTP time into everyday time
       // Unix time starts on Jan 1 1970. In seconds, that's 2208988800:
       const unsigned long seventyYears = 2208988800UL;
       const unsigned long timeZoneDiff = timeZone * 3600; // adjust the time zone
-      
+
       // subtract seventy years and add time zone
       unsigned long epoch = (secsSince1900 - seventyYears) + timeZoneDiff;
-  
+
       Serial.println("[setup] Packet Read");
       Serial.println("[setup] Server epoch time (local)  " + String(epoch));
       return epoch;
@@ -266,20 +270,20 @@ struct Time
       return 0;
     }
   }
-  
+
   void synchRTC(unsigned long epoch) // synchs the onboard RTC to that time
   {
     Serial.println("[loop / Time / synchRTC]");
     Serial.println("[setup] Initialising RTC with Time");
     Serial.println("[setup] Initialising RTC");
     rtc.begin();
-  
+
     Serial.println("[setup] Setting Current Time");
     rtc.setEpoch(epoch);
-    
+
     Serial.println("[setup] RTC Setup Complete");
   }
-  
+
   String processTime() // a public loop to convert time to string
   {
     Serial.println("[loop / Time / processTime]");
@@ -293,16 +297,16 @@ struct Time
     date += rtc.getMonth();
     date += "-";
     date += rtc.getDay();
-    
-    if(rtc.getHours() < 10) time += "0";
+
+    if (rtc.getHours() < 10) time += "0";
     time += rtc.getHours();
     time += ":";
-    if(rtc.getMinutes() < 10) time += "0";
+    if (rtc.getMinutes() < 10) time += "0";
     time += rtc.getMinutes();
     time += ":";
-    if(rtc.getSeconds() < 10) time += "0";
+    if (rtc.getSeconds() < 10) time += "0";
     time += rtc.getSeconds();
-  
+
     rtc.getY2kEpoch();
     epoch = rtc.getEpoch();
 
@@ -323,7 +327,7 @@ struct Time
     packetBuffer[13]  = 0x4E;
     packetBuffer[14]  = 49;
     packetBuffer[15]  = 52;
-  
+
     Udp.beginPacket(address, 123); //NTP requests are to port 123
     Udp.write(packetBuffer, NTP_PACKET_SIZE);
     Udp.endPacket();
@@ -336,28 +340,28 @@ struct Location
 {
   float latitude;
   float longitude;
-  
+
   void getLocation()
   {
     Serial.println("[loop / Location / getLocation]");
     lockLocation();
   }
-  
+
   int lockLocation() // queries the location until it locks
   {
     Serial.println("[loop / Location / lockLocation]");
     Serial.println("[loop] Attempting to lock");
-    
-    while(true)
+
+    while (true)
     {
       led.blink(200);
       Serial.print(".");
-      if(location.available())
+      if (location.available())
       {
         latitude = location.latitude();
         longitude = location.longitude();
-        
-        if(checkLocation(latitude, longitude))
+
+        if (checkLocation(latitude, longitude))
         {
           break;
         }
@@ -368,13 +372,13 @@ struct Location
     Serial.println("[loop] Location is " + String(latitude) + ", " + String(longitude));
     return 1;
   }
-  
+
   int checkLocation(float lat, float lng) // checks if the location locked
   {
     int rawLat = lat;
     int rawLng = lng;
-    
-    if(rawLat == lat && rawLng == lng) // location is not precise
+
+    if (rawLat == lat && rawLng == lng) // location is not precise
     {
       return 0;
     }
@@ -392,21 +396,21 @@ struct Iothub
   void prepareConnection() // establish connection to hub after wake up
   {
     Serial.println("[loop / Iothub / prepareConnection]");
-    
-    while(!mqttClient.connected())
+
+    while (!mqttClient.connected())
     {
       connectMQTT();
       mqttClient.poll();
     }
   }
-  
+
   void connectMQTT() // connect to IoT Hub
   {
     Serial.println("[loop / Iothub / connectMQTT]");
     Serial.print("[loop] Attempting to connect to MQTT broker ");
     Serial.print(broker);
-  
-    while (!mqttClient.connect(broker, 8883)) 
+
+    while (!mqttClient.connect(broker, 8883))
     {
       // failed, retry
       Serial.print(".");
@@ -414,41 +418,30 @@ struct Iothub
       delay(5000);
     }
     Serial.println();
-  
+
     Serial.println("[loop] Connected to the MQTT broker");
     Serial.println("");
     Serial.println("");
     Serial.println("");
-    
+
     // subscribe to a topic
     mqttClient.subscribe("devices/" + deviceId + "/messages/devicebound/#");
   }
-  
+
   void publishMessage(String messageToSend) // loop that sends message
   {
     led.on();
     Serial.println("[loop / Iothub / publishMessage]");
     Serial.println("[loop] Sending message: " + String(messageToSend));
-  
+
     // send message, the Print interface can be used to set the message contents
     mqttClient.beginMessage("devices/" + deviceId + "/messages/events/");
     mqttClient.print(messageToSend);
     mqttClient.endMessage();
-  
+
     Serial.println("[loop] Message Sent");
     Serial.println();
     led.off();
-  }
-
-  String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, char t[]) // compiles message of type 1 (location)
-  {
-    Serial.println("[loop / Iothub / compileMessage]");
-    // compile the data into the json payload
-    char buffer[150];
-    sprintf(buffer, payload1, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "time", t);
-
-    // return
-    return String(buffer);
   }
 
   String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
@@ -456,8 +449,8 @@ struct Iothub
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
     char buffer[150];
-    sprintf(buffer, payload2, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t);
-    
+    sprintf(buffer, payload, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t);
+
     // return
     return String(buffer);
   }
@@ -469,35 +462,37 @@ struct Setup
 {
   void run() // set up the device
   {
+    LowPower.attachInterruptWakeup(RTC_ALARM_WAKEUP, alarmEvent0, CHANGE);
+
     Serial.println("[loop / Setup / run]");
     gsm(); // prepare GSM
-    
+
     Serial.println("");
     rtc(); // preapre time and RTC
-    
+
     Serial.println("");
     iothub(); // prepare connection to the IoT Hub
     ledSet(); // set up the onboard LED
-    
+
     location.begin(); // set up the lcoation
     loc.getLocation(); // lock onto the location
   }
-   
+
   void gsm() // set up GSM
   {
     Serial.println("[loop / Setup / gsm]");
     Serial.println("[setup] Starting Arduino GPRS NTP client");
-  
+
     // connection state
     bool connected = false;
-  
-    while (!connected) 
+
+    while (!connected)
     {
-      if ((gsmAccess.begin() == GSM_READY) && (gprs.attachGPRS("", "", "") == GPRS_READY)) 
+      if ((gsmAccess.begin() == GSM_READY) && (gprs.attachGPRS("", "", "") == GPRS_READY))
       {
         connected = true;
-      } 
-      else 
+      }
+      else
       {
         Serial.print(".");
         led.blink(500);
@@ -509,7 +504,7 @@ struct Setup
   {
     Serial.println("[loop / Setup / iothub]");
     Serial.println("[setup] Setting up Security Chip");
-    if (!ECCX08.begin()) 
+    if (!ECCX08.begin())
     {
       Serial.println("[setup] ERROR: No ECCX08 present!");
       while (1);
@@ -519,30 +514,30 @@ struct Setup
     ECCX08SelfSignedCert.beginReconstruction(0, 8);
     ECCX08SelfSignedCert.setCommonName(ECCX08.serialNumber());
     ECCX08SelfSignedCert.endReconstruction();
-  
+
     Serial.println("[setup] Signing certificates on time");
     time.processTime();
     ArduinoBearSSL.onGetTime(returnTime);
     delay(1000);
-    
+
     // Set the ECCX08 slot to use for the private key
     // and the accompanying public certificate for it
     sslClient.setEccSlot(0, ECCX08SelfSignedCert.bytes(), ECCX08SelfSignedCert.length());
-  
+
     Serial.println("[setup] Setting up variables");
     // Set the client id used for MQTT as the device id
     mqttClient.setId(deviceId);
-  
+
     // Set the username to "<broker>/<device id>/api-version=2018-06-30" and empty password
     String username;
-  
+
     username += broker;
     username += "/";
     username += deviceId;
     username += "/?api-version=2018-06-30";
-  
+
     mqttClient.setUsernamePassword(username, "");
-  
+
     // Set the message callback, this function is
     // called when the MQTTClient receives a message
     Serial.println("[setup] Preparing callbacks");
@@ -556,25 +551,25 @@ struct Setup
     pinMode(led.ledPin, OUTPUT);
     led.off();
   }
-  
+
   void rtc() // get the time and synch it to the onboard RTC
   {
     Serial.println("[loop / Setup / rtc]");
     Serial.println("[setup] Starting connection to server");
     Udp.begin(localPort);
-  
+
     Serial.println("[setup] Synching onboard RTC to GNSS Time");
-  
+
     // wait until we have the time appended to a variable
     unsigned long epoch = 0;
-    while(!epoch)
+    while (!epoch)
     {
       Serial.println(".");
       epoch = time.getEpochTime();
     }
-  
+
     Serial.println("");
-    
+
     // synch the time to the RTC
     time.synchRTC(epoch);
   }
@@ -584,32 +579,17 @@ Setup setting;
 
 struct Looping
 {
-  int count;
   int sleepTime = MODE; // the time to wait between reads
 
-  // runs every 5 mins
-  int sendOne()
-  {
-    Serial.println("[loop / Looping / sendOne]");
-    
-    loc.getLocation(); // get the current location - wait until precise
-    get.checkIfOn(); // check if the device is being worn
-
-    // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, 1, time.timestamp));
-    return 1;
-  }
-
-  // runs every 20 mins
-  int sendTwo()
+  int sendData()
   {
     Serial.println("[loop / Looping / sendTwo]");
-    count = 0; // reset count
-
     loc.getLocation(); // get the current location - wait until precise
+
     get.checkIfOn(); // check if the device is being worn
-    
-    if(get.isOn) // only get the heartrate if the device is worn
+    get.temp(); // get the temperature
+
+    if (get.isOn) // only get the heartrate if the device is worn
     {
       get.processHr(); // get the heartrate
     }
@@ -617,38 +597,25 @@ struct Looping
     {
       get.tempVal = 0;
     }
-    
-    get.temp(); // get the temperature
 
     // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, 1, random(60, 72), get.tempVal, time.timestamp));
-    
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, get.hrVal, get.tempVal, time.timestamp));
+
     // reset variables
     get.tempVal = 0;
     get.hrVal = 0;
     return 1;
   }
-  
+
   // runs when the device wakes up
   int prepareWakeUp() // runs when the device wakes up
   {
     Serial.println("[loop / Looping / prepareWakeUp]");
-    count ++; // increment the looping number
 
-    iot.prepareConnection(); // prepare the connection to the backend
     iot.connectMQTT();
-    
     time.processTime();
-    
-    if(count >= 4)
-    {
-      sendTwo();
-    }
-    else
-    {
-      sendOne();
-    }
 
+    sendData();
     return 1;
   }
 };
@@ -658,18 +625,18 @@ Looping looping;
 void setup()
 {
   Serial.begin(9600);
-  
+
   // only start the Serial Monitor if in development mode
-  if(MODE == DEVELOP_TIME)
+  if (MODE == DEVELOP_TIME)
   {
-    while(!Serial);
+    while (!Serial);
   }
 
   Serial.println("SmartWristband");
   Serial.println("1/JUN/2020 - 5/JUN/2020 | Andrei Florian");
   Serial.println("");
   Serial.println("");
-    
+
   setting.run(); // get everything set up
 }
 
@@ -678,7 +645,7 @@ void loop()
   led.off();
   delay(500);
   led.blink(1000);
-  
+
   looping.prepareWakeUp(); // run the code when the device wakes up
 
   Serial.println("[loop] Sleeping for " + String(looping.sleepTime) + "ms");
@@ -687,10 +654,10 @@ void loop()
   Serial.println("");
   delay(1);
 
-  if(MODE == DEVELOP_TIME) // delay 10 seconds if debugging
+  if (MODE == DEVELOP_TIME) // delay 10 seconds if debugging
   {
     led.on();
-    delay(looping.sleepTime);
+    delay(10000);
   }
   else // sleep for 5 minutes if released
   {
