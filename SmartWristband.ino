@@ -465,77 +465,6 @@ struct Iothub
 
 Iothub iot;
 
-struct Looping
-{
-  int count;
-  int sleepTime = MODE; // the time to wait between reads
-
-  // runs every 5 mins
-  int sendOne()
-  {
-    Serial.println("[loop / Looping / sendOne]");
-    
-    loc.getLocation(); // get the current location - wait until precise
-    get.checkIfOn(); // check if the device is being worn
-
-    // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, time.timestamp));
-    return 1;
-  }
-
-  // runs every 20 mins
-  int sendTwo()
-  {
-    Serial.println("[loop / Looping / sendTwo]");
-    count = 0; // reset count
-
-    loc.getLocation(); // get the current location - wait until precise
-    get.checkIfOn(); // check if the device is being worn
-    
-    if(get.isOn) // only get the heartrate if the device is worn
-    {
-      get.processHr(); // get the heartrate
-    }
-    else
-    {
-      get.tempVal = 0;
-    }
-    
-    get.temp(); // get the temperature
-
-    // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, get.hrVal, get.tempVal, time.timestamp));
-    
-    // reset variables
-    get.tempVal = 0;
-    get.hrVal = 0;
-    return 1;
-  }
-  
-  // runs when the device wakes up
-  int prepareWakeUp() // runs when the device wakes up
-  {
-    Serial.println("[loop / Looping / prepareWakeUp]");
-    count ++; // increment the looping number
-
-    iot.prepareConnection(); // prepare the connection to the backend
-    time.processTime();
-    
-    if(count >= 4)
-    {
-      sendTwo();
-    }
-    else
-    {
-      sendOne();
-    }
-
-    return 1;
-  }
-};
-
-Looping looping;
-
 struct Setup
 {
   void run() // set up the device
@@ -653,19 +582,94 @@ struct Setup
 
 Setup setting;
 
+struct Looping
+{
+  int count;
+  int sleepTime = MODE; // the time to wait between reads
+
+  // runs every 5 mins
+  int sendOne()
+  {
+    Serial.println("[loop / Looping / sendOne]");
+    
+    loc.getLocation(); // get the current location - wait until precise
+    get.checkIfOn(); // check if the device is being worn
+
+    // package and send data to cloud
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, 1, time.timestamp));
+    return 1;
+  }
+
+  // runs every 20 mins
+  int sendTwo()
+  {
+    Serial.println("[loop / Looping / sendTwo]");
+    count = 0; // reset count
+
+    loc.getLocation(); // get the current location - wait until precise
+    get.checkIfOn(); // check if the device is being worn
+    
+    if(get.isOn) // only get the heartrate if the device is worn
+    {
+      get.processHr(); // get the heartrate
+    }
+    else
+    {
+      get.tempVal = 0;
+    }
+    
+    get.temp(); // get the temperature
+
+    // package and send data to cloud
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, 1, random(60, 72), get.tempVal, time.timestamp));
+    
+    // reset variables
+    get.tempVal = 0;
+    get.hrVal = 0;
+    return 1;
+  }
+  
+  // runs when the device wakes up
+  int prepareWakeUp() // runs when the device wakes up
+  {
+    Serial.println("[loop / Looping / prepareWakeUp]");
+    count ++; // increment the looping number
+
+    iot.prepareConnection(); // prepare the connection to the backend
+    iot.connectMQTT();
+    
+    time.processTime();
+    
+    if(count >= 4)
+    {
+      sendTwo();
+    }
+    else
+    {
+      sendOne();
+    }
+
+    return 1;
+  }
+};
+
+Looping looping;
+
 void setup()
 {
+  Serial.begin(9600);
+  
   // only start the Serial Monitor if in development mode
   if(MODE == DEVELOP_TIME)
   {
-    Serial.begin(9600);
     while(!Serial);
-    Serial.println("SmartWristband");
-    Serial.println("1/JUN/2020 - 5/JUN/2020 | Andrei Florian");
-    Serial.println("");
-    Serial.println("");
   }
 
+  Serial.println("SmartWristband");
+  Serial.println("1/JUN/2020 - 5/JUN/2020 | Andrei Florian");
+  Serial.println("");
+  Serial.println("");
+    
   setting.run(); // get everything set up
 }
 
