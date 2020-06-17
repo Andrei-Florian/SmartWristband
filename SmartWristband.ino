@@ -44,7 +44,7 @@ MqttClient    mqttClient(sslClient);
 const char broker[] = SECRET_BROKER;
 String deviceId = SECRET_DEVICEID;
 
-char payload[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": %d, \"%s\": %f, \"%s\": \"%s\" }"; // deviceID, geoLat, geoLng, isWorn, heartrate, temperature, time
+char payload[] = "{ \"%s\": \"%s\", \"%s\": %f, \"%s\": %f, \"%s\": %d, \"%s\": %d, \"%s\": %f, \"%s\": \"%s\", \"%s\": %f }"; // deviceID, geoLat, geoLng, isWorn, heartrate, temperature, time
 
 // time globals
 unsigned int localPort = 2390;      // local port to listen for UDP packets
@@ -127,6 +127,7 @@ struct Get
 {
   bool isOn;
   float tempVal;
+  float battery;
   int hrVal;
   int i;
 
@@ -224,6 +225,14 @@ struct Get
     Serial.println("[loop] Device is worn");
     isOn = true;
     return true;
+  }
+
+  void batteryLevel()
+  {
+    Serial.println("[loop / Get / batteryLevel]");
+    int sensorValue = analogRead(ADC_BATTERY);
+    float voltage = sensorValue * (4.3 / 1023.0);
+    battery = voltage;
   }
 };
 
@@ -444,12 +453,12 @@ struct Iothub
     led.off();
   }
 
-  String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, int heartrate, float temperature, char t[]) // compiles message of type 2 (telemetry)
+  String compileMessage(char deviceID[], float geoLat, float geoLng, int isWorn, int heartrate, float temperature, char t[], float battery) // compiles message of type 2 (telemetry)
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
     char buffer[150];
-    sprintf(buffer, payload, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t);
+    sprintf(buffer, payload, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t, "battery", battery);
 
     // return
     return String(buffer);
@@ -588,7 +597,8 @@ struct Looping
 
     get.checkIfOn(); // check if the device is being worn
     get.temp(); // get the temperature
-
+    get.batteryLevel(); // get the battery level
+    
     if (get.isOn) // only get the heartrate if the device is worn
     {
       get.processHr(); // get the heartrate
@@ -599,7 +609,7 @@ struct Looping
     }
 
     // package and send data to cloud
-    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, get.hrVal, get.tempVal, time.timestamp));
+    iot.publishMessage(iot.compileMessage(DEVICE_ID, loc.latitude, loc.longitude, get.isOn, get.hrVal, get.tempVal, time.timestamp, get.battery));
 
     // reset variables
     get.tempVal = 0;
