@@ -457,7 +457,7 @@ struct Iothub
   {
     Serial.println("[loop / Iothub / compileMessage]");
     // compile the data into the json payload
-    char buffer[150];
+    char buffer[200];
     sprintf(buffer, payload, "id", deviceID, "geoLat", geoLat, "geoLng", geoLng, "isWorn", isWorn, "heartrate", heartrate, "temperature", temperature, "time", t, "battery", battery);
 
     // return
