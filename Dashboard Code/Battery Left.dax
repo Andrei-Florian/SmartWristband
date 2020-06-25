@@ -1,0 +1,1 @@
+Battery Left (hours) = FLOOR(([rawBattery] * 47.62), 1) // multiply by 47.62 to convert 0 - 4.2 to 0 - 8.3 days (8.3 days is battery life)

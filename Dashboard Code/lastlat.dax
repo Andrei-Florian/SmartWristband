@@ -1,0 +1,7 @@
+lastLat = VAR _MaxTime =
+    CALCULATE (
+        MAX ( data[Document.time] ),
+        KEEPFILTERS ( ALL ( data[Document.time] ) )
+    )
+RETURN
+    CALCULATE ( SUM ( data[Document.latitude] ), data[Document.time] = _MaxTime )

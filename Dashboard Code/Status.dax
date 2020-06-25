@@ -1,0 +1,1 @@
+Status = IF([Location] == "home" && [Temperature] < 38 && [Heartrate] < 90, "OK", "WARNING")

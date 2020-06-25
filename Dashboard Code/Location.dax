@@ -1,0 +1,8 @@
+Location = 
+VAR maxLat = [homeLat] + 0.001
+VAR minLat = [homeLat] - 0.001
+
+VAR maxLng = [homeLng] + 0.001
+VAR minLng = [homeLng] - 0.001
+
+RETURN IF([lastLat] <= maxLat && [lastLat] >= minLat && [lastLng] <= maxLng && [lastLng] >= minLng, "HOME", "AWAY")

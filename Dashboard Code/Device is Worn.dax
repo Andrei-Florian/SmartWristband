@@ -1,0 +1,9 @@
+Device is Worn = VAR _MaxTime =
+    CALCULATE (
+        MAX ( data[Document.time] ),
+        KEEPFILTERS ( ALL ( data[Document.time] ) )
+    )
+
+    VAR _lastTime = CALCULATE ( SUM ( data[Document.isWorn] ), data[Document.time] = _MaxTime )
+
+    RETURN IF(_lastTime == 1, "YES", IF(_lastTime == 0, "NO"))

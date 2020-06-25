@@ -1,0 +1,13 @@
+SELECT
+    time as time,
+    id as name,
+    geoLat as latitude,
+    geoLng as longitude,
+    isWorn as isWorn,
+    heartrate as heartrate,
+    temperature as temperature,
+    battery as battery
+INTO
+    [universum-smartwristband-db]
+FROM
+    [universum-smartwristband-hub]

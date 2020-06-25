@@ -1,0 +1,1 @@
+Battery = (FLOOR(([rawBattery] * 23.81), 1) / 100) // 23.81 is the factor which converts 0 - 4.2 to 0 - 100
