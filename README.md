@@ -1,4 +1,6 @@
 # Overview
+![Cover Image](https://hackster.imgix.net/uploads/attachments/1151509/_U3B4yFMhDa.blob?auto=compress%2Cformat&w=900&h=675&fit=min)
+
 It is needless to say that COVID-19 has changed the world as we know it. Business moved from office to home, school closed and our lives became a daily routine of wondering around the house.
 Although I am sure that everyone heard this echo throughout the quarantine, I too would like to dedicate a paragraph to all the front line workers that keep working away in this insecure world as we all bunker in at home. It does take courage and determination to save lives (be that through nursing patients in hospitals or shipping supplies worldwide).
 I found myself overreading this topic in the past while, I ended up spending a couple of hours thinking of solutions that would help the world in this fragile moment, solutions that could make a change and help us thrive in a world that shifts beneath our feet.
